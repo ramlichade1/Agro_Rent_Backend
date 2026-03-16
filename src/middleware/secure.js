@@ -4,7 +4,7 @@ module.exports = (req, res, next) => {
   const token = req.headers['x-api-token'];
 
   if (!token || token !== API_TOKEN) {
-    return res.status(501).json({
+    return res.status(401).json({
       success: false,
       message: 'Unauthorized access'
     });
