@@ -7,40 +7,224 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id          Int       @id @default(autoincrement())
-  email       String    @unique
-  password    String
-  role        Role
-  createdAt   DateTime  @default(now())
+////////////////////////////////////////////////////
+//// ENUMS
+////////////////////////////////////////////////////
 
-  farmerId    Int?      @unique
-  businessId  Int?      @unique
-
-  farmer      Farmer?    @relation(fields: [farmerId], references: [id])
-  businessman Businessman? @relation(fields: [businessId], references: [id])
+enum Role {
+  ADMIN
+  FARMER
+  BUSINESSMAN
 }
+
+enum BookingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum EquipmentStatus {
+  ACTIVE
+  INACTIVE
+  UNDER_MAINTENANCE
+}
+
+////////////////////////////////////////////////////
+//// USERS
+////////////////////////////////////////////////////
+
+model User {
+  id         Int     @id @default(autoincrement())
+  email      String  @unique
+  password   String
+  role       Role
+  isActive   Boolean @default(true)
+  isVerified Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  farmerId   Int? @unique
+  businessId Int? @unique
+
+  farmer      Farmer?      @relation(fields: [farmerId], references: [id])
+  businessman Businessman? @relation(fields: [businessId], references: [id])
+
+  reviews       Review[]
+  notifications Notification[]
+}
+
+////////////////////////////////////////////////////
+//// FARMER PROFILE
+////////////////////////////////////////////////////
 
 model Farmer {
-  id       Int    @id @default(autoincrement())
-  name     String
-  phone    String
-  address  String
+  id      Int     @id @default(autoincrement())
+  name    String
+  phone   String
+  address String
+  city    String?
+  state   String?
+  pincode String?
 
-  user     User?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User?
+
+  bookings Booking[]
 }
 
+////////////////////////////////////////////////////
+//// EQUIPMENT OWNER PROFILE
+////////////////////////////////////////////////////
+
 model Businessman {
-  id           Int    @id @default(autoincrement())
+  id           Int     @id @default(autoincrement())
   businessName String
   contactName  String
   phone        String
   address      String
+  city         String?
+  state        String?
+  pincode      String?
 
-  user         User?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user       User?
+  equipments Equipment[]
 }
 
-enum Role {
-  FARMER
-  BUSINESSMAN
+////////////////////////////////////////////////////
+//// EQUIPMENT LISTINGS
+////////////////////////////////////////////////////
+
+model Equipment {
+  id Int @id @default(autoincrement())
+
+  name         String
+  description  String?
+  category     String
+  pricePerHour Float?
+  pricePerDay  Float
+  pricePerWeek Float?
+
+  imageUrl  String?
+  location  String?
+  latitude  Float?
+  longitude Float?
+
+  status EquipmentStatus @default(ACTIVE)
+
+  ownerId Int
+  owner   Businessman @relation(fields: [ownerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bookings     Booking[]
+  reviews      Review[]
+  availability Availability[]
+}
+
+////////////////////////////////////////////////////
+//// EQUIPMENT AVAILABILITY CALENDAR
+////////////////////////////////////////////////////
+
+model Availability {
+  id          Int      @id @default(autoincrement())
+  equipmentId Int
+  startDate   DateTime
+  endDate     DateTime
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id])
+}
+
+////////////////////////////////////////////////////
+//// BOOKINGS
+////////////////////////////////////////////////////
+
+model Booking {
+  id Int @id @default(autoincrement())
+
+  farmerId    Int
+  equipmentId Int
+
+  startDate DateTime
+  endDate   DateTime
+
+  totalAmount Float
+
+  status BookingStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  farmer    Farmer    @relation(fields: [farmerId], references: [id])
+  equipment Equipment @relation(fields: [equipmentId], references: [id])
+
+  payment Payment?
+}
+
+////////////////////////////////////////////////////
+//// PAYMENTS
+////////////////////////////////////////////////////
+
+model Payment {
+  id Int @id @default(autoincrement())
+
+  bookingId Int           @unique
+  amount    Float
+  status    PaymentStatus @default(PENDING)
+
+  transactionId String?
+
+  createdAt DateTime @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+}
+
+////////////////////////////////////////////////////
+//// REVIEWS & RATINGS
+////////////////////////////////////////////////////
+
+model Review {
+  id Int @id @default(autoincrement())
+
+  userId      Int
+  equipmentId Int
+
+  rating  Int
+  comment String?
+
+  createdAt DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id])
+  equipment Equipment @relation(fields: [equipmentId], references: [id])
+}
+
+////////////////////////////////////////////////////
+//// NOTIFICATIONS
+////////////////////////////////////////////////////
+
+model Notification {
+  id      Int     @id @default(autoincrement())
+  userId  Int
+  title   String
+  message String
+  isRead  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
 }
