@@ -1,12 +1,12 @@
 const service = require('./service');
 
-exports.getProducts = async (req, res) => {
+exports.getCount = async (req, res) => {
   try {
-    const result = await service.getProducts(req.query);
+    const result = await service.getCount();
 
     res.status(200).json({
       success: true,
-      data: result
+      count: result
     });
 
   } catch (error) {
